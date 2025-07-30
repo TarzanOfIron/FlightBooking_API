@@ -10,7 +10,6 @@ import java.util.List;
 public interface FlightBookingService {
 
 
-
     FlightBookingDTO bookFlight(Long flightId, BookFlightRequestDTO bookingRequest);
 
     void cancelFlight(Long flightId, String passengerEmail);

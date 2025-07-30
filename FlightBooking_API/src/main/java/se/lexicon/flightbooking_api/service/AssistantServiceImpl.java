@@ -1,10 +1,9 @@
 package se.lexicon.flightbooking_api.service;
 
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -14,13 +13,32 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AssistantServiceImpl implements AssistantService {
 
-    private ChatMemory chatMemory;
-    private final OpenAiChatModel openAiChatModel;
+    private final ChatMemory chatMemory;
+    private final ChatClient chatClient;
+    private final FlightBookingService flightBookingService;
+
+    //Todo: complete the system message
+
+    private String systemMessage = """
+            You are a flight assistant, helping users to handle their flights.
+            Your tasks includes the following:
+            1: Booking a flight for the user using the "booking request" tool, the bookingRequest needs a name and an email
+            2: Canceling a flight for the user using the "cancelFlight" tool
+            3: Listing the user their flights using the "findBookingsByEmail" tool
+            4: Listing all the flights using "findAll" tool
+            5: Listing all available flights using "findAvailableFlights" tool
+             
+            If asked anything not related to the previously mentioned tasks or the users personal information, respectfully deline
+            to answer the question or task and explain what you are able to help with.
+            """;
 
     @Autowired
-    public AssistantServiceImpl(ChatMemory chatMemory, OpenAiChatModel openAiChatModel) {
+    public AssistantServiceImpl(ChatMemory chatMemory, ChatClient.Builder chatClientBuilder, FlightBookingService flightBookingService) {
+        this.chatClient = chatClientBuilder
+                .defaultAdvisors(MessageChatMemoryAdvisor.builder(chatMemory).build())
+                .build();
+        this.flightBookingService = flightBookingService;
         this.chatMemory = chatMemory;
-        this.openAiChatModel = openAiChatModel;
     }
 
     @Override
@@ -33,22 +51,17 @@ public class AssistantServiceImpl implements AssistantService {
             throw new RuntimeException("ConversationId is empty");
         }
 
-        UserMessage userMessage = UserMessage.builder().text(query).build();
-        chatMemory.add( conversationId, userMessage );
+        ChatResponse chatResponse = this.chatClient.prompt()
+                .user(query)
+                .system(systemMessage)
+                .options(OpenAiChatOptions.builder().temperature(0.2).maxTokens(500).build())
+                .tools(flightBookingService)
+                .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .call()
+                .chatResponse();
 
-        Prompt prompt = Prompt.builder()
-                .messages(chatMemory.get(conversationId))
-                .chatOptions(OpenAiChatOptions.builder()
-                        .model("gpt-4.1-mini")
-                        .temperature(0.2)
-                        .maxTokens(500)
-                        .build())
-                .build();
 
-        ChatResponse chatResponse = openAiChatModel.call(prompt);
-        chatMemory.add(conversationId, chatResponse.getResult().getOutput());
-
-        return chatResponse.getResult().getOutput().getText();
+        return chatResponse != null ? chatResponse.getResult().getOutput().getText() : "No Response Returned";
     }
 
     @Override
@@ -56,7 +69,6 @@ public class AssistantServiceImpl implements AssistantService {
         if (conversationId == null || conversationId.trim().isEmpty()) {
             throw new RuntimeException("ConversationId is empty");
         }
-
         chatMemory.clear(conversationId);
     }
 }

@@ -1,6 +1,7 @@
 package se.lexicon.flightbooking_api.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import se.lexicon.flightbooking_api.dto.AvailableFlightDTO;
@@ -25,6 +26,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
 
 
     @Override
+    @Tool(description = "Books a flight for the user using a booking request")
     public FlightBookingDTO bookFlight(Long flightId, BookFlightRequestDTO bookingRequest) {
         FlightBooking flight = flightBookingRepository.findById(flightId)
                 .orElseThrow(() -> new RuntimeException("Flight not found"));
@@ -42,6 +44,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     }
 
     @Override
+    @Tool(description = "Cancels a flight for the user using a booking request")
     public void cancelFlight(Long flightId, String passengerEmail) {
         FlightBooking flight = flightBookingRepository.findById(flightId)
                 .orElseThrow(() -> new RuntimeException("Flight not found"));
@@ -55,6 +58,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     }
 
     @Override
+    @Tool(description = "Lists all the flights that are available to book")
     public List<AvailableFlightDTO> findAvailableFlights() {
         return flightBookingRepository.findByStatus(FlightStatus.AVAILABLE)
                 .stream()
@@ -63,6 +67,7 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     }
 
     @Override
+    @Tool(description = "Lists all the flights booked with the given email")
     public List<FlightBookingDTO> findBookingsByEmail(String email) {
         return flightBookingRepository.findByPassengerEmail(email)
                 .stream()
@@ -71,12 +76,11 @@ public class FlightBookingServiceImpl implements FlightBookingService {
     }
 
     @Override
+    @Tool(description = "Lists all the flights")
     public List<FlightListDTO> findAll() {
         return flightBookingRepository.findAll()
                 .stream()
                 .map(mapper::toListDTO)
                 .collect(Collectors.toList());
     }
-
-
 }
