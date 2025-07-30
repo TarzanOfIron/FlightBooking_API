@@ -61,6 +61,9 @@ public class AssistantServiceImpl implements AssistantService {
                 .chatResponse();
 
 
+
+
+
         return chatResponse != null ? chatResponse.getResult().getOutput().getText() : "No Response Returned";
     }
 
