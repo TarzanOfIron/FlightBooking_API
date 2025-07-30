@@ -45,6 +45,7 @@ public class FlightBookingController {
             @ApiResponse(responseCode = "404", description = "Flight not found", content = @Content),
             @ApiResponse(responseCode = "400", description = "Flight not available", content = @Content)
     })
+
     @PostMapping("/{flightId}/book")
     public ResponseEntity<FlightBookingDTO> bookFlight(
             @Parameter(description = "ID of the flight to book") @PathVariable Long flightId,
@@ -66,6 +67,7 @@ public class FlightBookingController {
             @ApiResponse(responseCode = "404", description = "Flight not found", content = @Content),
             @ApiResponse(responseCode = "400", description = "Invalid email for the booking", content = @Content)
     })
+
     @DeleteMapping("/{flightId}/cancel")
     public ResponseEntity<Void> cancelFlight(
             @Parameter(description = "ID of the flight to cancel") @PathVariable Long flightId,
