@@ -1,13 +1,15 @@
 import React from 'react'
+import ReactMarkdown from 'react-markdown';
+
 
 interface props {
-  response: String;
+  response: string;
 }
 
 function AssistantMessage ({response } : props){
   return (
     <div className='assistant-response d-felx rounded-4 me-auto m-3 p-2 ' style={{ maxWidth: "75%", backgroundColor: "lightGrey"}} >
-        <p className='m-auto'> { response }</p>
+        <ReactMarkdown>{response}</ReactMarkdown>
     </div>
   )
 }
