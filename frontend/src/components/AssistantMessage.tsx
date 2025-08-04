@@ -1,15 +1,16 @@
-import React from 'react'
 import ReactMarkdown from 'react-markdown';
-
+import remarkGfm from "remark-gfm";
 
 interface props {
   response: string;
 }
 
-function AssistantMessage ({response } : props){
+function AssistantMessage ({response } : props) {
   return (
-    <div className='assistant-response d-felx rounded-4 me-auto m-3 p-2 ' style={{ maxWidth: "75%", backgroundColor: "lightGrey"}} >
-        <ReactMarkdown>{response}</ReactMarkdown>
+    <div className='assistant-message d-felx rounded-4 me-auto m-3 p-2 ' style={{ maxWidth: "75%", backgroundColor: "lightGrey"}} >
+        <ReactMarkdown>
+          {response}
+        </ReactMarkdown>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import UsersMessage from "./UsersMessage";
 import AssistantMessage from "./AssistantMessage";
 import axios from "axios";
@@ -7,10 +7,6 @@ import { useState } from "react";
 type Message = {
   type: "user" | "assistant";
   text: string;
-};
-
-type ChatResponse = {
-  reply: string; // match this with what your backend returns
 };
 
 function Chat() {
@@ -24,32 +20,53 @@ function Chat() {
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
 
-    try {
-      const response = await axios.post<string>(
-        `http://localhost:8081/api/flightAssistant/chat?question=${encodeURIComponent(input)}`
-      );
+    const newAssistantMessage: Message = { type: "assistant", text: "" };
+    setMessages((prev) => [...prev, newAssistantMessage]);
+    const assistantIndex = messages.length + 1;
 
-      console.log("faszkvian")
+    const source = new EventSource(`http://localhost:8081/api/flightAssistant/chat?question=${encodeURIComponent(input)}`);
 
-
-      const assistantMessage: Message = {
-        type: "assistant",
-        text: response.data,
+  source.onmessage = (event) => {
+    setMessages((prev) => {
+      const updated = [...prev];
+      const oldText = updated[assistantIndex]?.text || "";
+      updated[assistantIndex] = {
+        ...updated[assistantIndex],
+        text: oldText + event.data + " ",
       };
-      console.log(assistantMessage)
-      setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error: any) {
-      console.error(" Axios error:", error.message);
-  if (error.response) {
-    console.error(" Server responded with status:", error.response.status);
-    console.error(" Response data:", error.response.data);
-  } else if (error.request) {
-    console.error(" No response received");  
-  } else {
-    console.error(" Setup error:", error.message);
-  }
-    }
+      return updated;
+    });
   };
+
+  source.onerror = () => {
+    source.close();
+    console.error("EventSource failed.");
+  };
+
+  //   try {
+  //     const response = await axios.post<string>(
+  //       `http://localhost:8081/api/flightAssistant/chat?question=${encodeURIComponent(input)}`
+  //     );
+
+  //     const assistantMessage: Message = {
+  //       type: "assistant",
+  //       text: response.data,
+  //     };
+
+  //     setMessages((prev) => [...prev, assistantMessage]);
+  //   } catch (error: any) {
+  //     console.error(" Axios error:", error.message);
+  //     if (error.response) {
+  //       console.error(" Server responded with status:", error.response.status);
+  //       console.error(" Response data:", error.response.data);
+  //     } else if (error.request) {
+  //       console.error(" No response received");
+  //     } else {
+  //       console.error(" Setup error:", error.message);
+  //     }
+  //   }
+   };
+
 
   return (
     <div className="d-flex flex-fill bg-secondary">

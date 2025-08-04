@@ -8,6 +8,7 @@ import org.springframework.ai.openai.OpenAiChatOptions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 
 @Service
 @Transactional
@@ -42,7 +43,7 @@ public class AssistantServiceImpl implements AssistantService {
     }
 
     @Override
-    public String chatMemory(String query, String conversationId) {
+    public Flux<String> chatMemory(String query, String conversationId) {
         if (query == null || query.isEmpty()) {
             throw new RuntimeException("Query is empty");
         }
@@ -51,20 +52,21 @@ public class AssistantServiceImpl implements AssistantService {
             throw new RuntimeException("ConversationId is empty");
         }
 
-        ChatResponse chatResponse = this.chatClient.prompt()
+        Flux<ChatResponse> chatResponse = this.chatClient.prompt()
                 .user(query)
                 .system(systemMessage)
                 .options(OpenAiChatOptions.builder().temperature(0.2).maxTokens(500).build())
                 .tools(flightBookingService)
                 .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId))
-                .call()
+                .stream()
                 .chatResponse();
 
-
-
-
-
-        return chatResponse != null ? chatResponse.getResult().getOutput().getText() : "No Response Returned";
+        try {
+            return chatResponse.flatMapIterable(ChatResponse::getResults)
+                    .mapNotNull(result -> result.getOutput().getText());
+        } catch (RuntimeException e){
+            throw new RuntimeException("Error processing chat query:" + e.getMessage());
+        }
     }
 
     @Override
